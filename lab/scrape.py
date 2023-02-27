@@ -8,11 +8,9 @@ from rich import console
 console = console.Console()
 PACKAGE_ID = 'UGFja2FnZS0yMjc1ODk0MDQy'
 PACKAGE_NAME = 'github.com/charmbracelet/wish'
-#URL = f'https://{PACKAGE_NAME}/network/dependents?package_id={PACKAGE_ID}'
-URL = f'https://{PACKAGE_NAME}/network/dependents'
+URL = f'https://{PACKAGE_NAME}/network/dependents?package_id={PACKAGE_ID}'
 
-#package = {'id': PACKAGE_ID, 'name': PACKAGE_NAME, 'url': URL}
-package = {'name': PACKAGE_NAME, 'url': URL}
+package = {'id': PACKAGE_ID, 'name': PACKAGE_NAME, 'url': URL}
 
 class Scraper:
   def __init__(self, url) -> None:
@@ -50,6 +48,7 @@ class Scraper:
         result += [result_item]
 
       # Check next page
+      next_exists = False
       paginate_container = soup.find('div', 'paginate-container')
       if paginate_container:
         for u in paginate_container.find_all('a'):
@@ -57,16 +56,21 @@ class Scraper:
             next_exists = True
             self.url = u['href']
             page_number += 1
-            console.log(f'📑: {page_number} | total: {len(result)}/{total_dependencies}')
-          else:
-            next_exists = False
+            console.log(f'📑: {page_number} | total: {len(result)}/{total_dependencies}~')
 
+    console.log(f'📑: {page_number+1} | total: {len(result)}/{total_dependencies}~')
     console.log('Done 🍀', len(result))
-    console.log('[red]according to github, the *dependent* count is not suppose to be accurate, therefor do not use *total_dependencies* variable...[/red]')
+    """
+    According to github, the *dependent* approximate count is not accurate, 
+    therefor do not use *total_dependencies* variable...
+    """
+    result = sorted(result, key=lambda x: x['stars'])
+    console.log(result)
+
     
   @staticmethod
-  def to_int(s: str) -> str:
-    return ''.join(c for c in s if c.isdigit())
+  def to_int(s: str) -> int:
+    return int(''.join(c for c in s if c.isdigit()))
 
   def requests_retry_session(
     self,
