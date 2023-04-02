@@ -1,3 +1,6 @@
+## For progress visualization
+- since we do not know extact number, we can just use page/page as progress
+
 ## REF
 - [BS4](https://stackoverflow.com/questions/58734176/how-to-use-github-api-to-get-a-repositorys-dependents-information-in-github/58772379#58772379)
 # use this repo below
