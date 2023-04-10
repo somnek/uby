@@ -1,5 +1,6 @@
 .vscode
 .env
+todo.md
 
 # Binaries for programs and plugins
 *.exe
