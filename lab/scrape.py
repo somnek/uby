@@ -5,10 +5,15 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 from rich import console
 
+"""list of dependants
+  - https://github.com/docarray/docarray/network/dependents
+"""
+
 console = console.Console()
 PACKAGE_ID = 'UGFja2FnZS0yMjc1ODk0MDQy'
-PACKAGE_NAME = 'github.com/charmbracelet/wish'
-URL = f'https://{PACKAGE_NAME}/network/dependents?package_id={PACKAGE_ID}'
+PACKAGE_NAME = 'github.com/charmbracelet/glow' # bubbletea | wish | glow
+# URL = f'https://{PACKAGE_NAME}/network/dependents?package_id={PACKAGE_ID}'
+URL = f'https://{PACKAGE_NAME}/network/dependents'
 
 package = {'id': PACKAGE_ID, 'name': PACKAGE_NAME, 'url': URL}
 
@@ -59,13 +64,13 @@ class Scraper:
             console.log(f'📑: {page_number} | total: {len(result)}/{total_dependencies}~')
 
     console.log(f'📑: {page_number+1} | total: {len(result)}/{total_dependencies}~')
-    console.log('Done 🍀', len(result))
     """
     According to github, the *dependent* approximate count is not accurate, 
     therefor do not use *total_dependencies* variable...
     """
     result = sorted(result, key=lambda x: x['stars'])
     console.log(result)
+    console.log('Done 🍀 | found: ', len(result))
 
     
   @staticmethod
