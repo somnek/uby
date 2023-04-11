@@ -13,7 +13,11 @@ func toNum(s string) int {
 	return i
 }
 
-func getRepoCount(url string) int {
+type Deps struct {
+	name string
+}
+
+func scrapeRepoCount(url string) int {
 	c := colly.NewCollector()
 
 	var count int
@@ -32,12 +36,25 @@ func getRepoCount(url string) int {
 	})
 
 	c.Visit(url)
+	fmt.Println(count)
 	return count
+}
+
+func scrapeDependents(repoCount int) []Deps {
+	hasNextPage := false
+	dependents := []Deps{}
+
+	for hasNextPage {
+		dependents = append(dependents, Deps{name: "test"})
+		break
+	}
+	return dependents
 }
 
 func main() {
 	url := "https://github.com/aquasecurity/trivy/network/dependents"
-	repoCount := getRepoCount(url) // estimate
-	_ = repoCount
+	repoCount := scrapeRepoCount(url)
+	dependents := scrapeDependents(repoCount)
+	_ = dependents
 
 }
