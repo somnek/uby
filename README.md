@@ -1,3 +1,3 @@
 # uby
 
-* used by * scraper for repos
+*used by* scraper for repos
