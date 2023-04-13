@@ -14,11 +14,19 @@ func toNum(s string) int {
 	return i
 }
 
-type Deps struct {
+type Dep struct {
 	user   string
 	repo   string
+	stars  int
 	avatar string
 	url    string
+}
+
+func extractStars(e *colly.HTMLElement) int {
+	parent := e.ChildText("span.color-fg-muted.text-bold.pl-3")
+	split := strings.TrimSpace(strings.Split(parent, " ")[0])
+	stars := toNum(split)
+	return stars
 }
 
 func scrape(c *colly.Collector, url string) int {
@@ -37,16 +45,19 @@ func scrape(c *colly.Collector, url string) int {
 	})
 
 	// ----------------------------------------------
-	dependents := []Deps{}
+	dependents := []Dep{}
 
 	c.OnHTML("div.Box-row", func(e *colly.HTMLElement) {
 		avatar := e.ChildAttr("img", "src")
 		user := e.ChildAttrs("a", "href")[0][1:]
 		repo := e.ChildText("a.text-bold")
 		url := fmt.Sprintf("https://github.com/%s/%s", user, repo)
-		dependents = append(dependents, Deps{
+		stars := extractStars(e)
+
+		dependents = append(dependents, Dep{
 			user:   user,
 			repo:   repo,
+			stars:  stars,
 			avatar: avatar,
 			url:    url,
 		})
