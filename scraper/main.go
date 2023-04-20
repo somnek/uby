@@ -5,8 +5,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gocolly/colly"
+)
+
+const (
+	maxPerPage = 30
 )
 
 func toNum(s string) int {
@@ -45,6 +48,16 @@ func scrape(c *colly.Collector, url string) int {
 	})
 
 	// ----------------------------------------------
+	var nextPageUrl string
+
+	c.OnHTML("a.btn.btn-outline.BtnGroup-item", func(e *colly.HTMLElement) {
+		if e.Text == "Next" {
+			nextPageUrl = e.Attr("href")
+		}
+		fmt.Println("hot", nextPageUrl)
+	})
+
+	// ----------------------------------------------
 	dependents := []Dep{}
 
 	c.OnHTML("div.Box-row", func(e *colly.HTMLElement) {
@@ -61,6 +74,11 @@ func scrape(c *colly.Collector, url string) int {
 			avatar: avatar,
 			url:    url,
 		})
+
+		if len(dependents)%maxPerPage == 0 {
+			fmt.Println("nextpagelink", nextPageUrl)
+			c.Visit(nextPageUrl)
+		}
 	})
 
 	// ----------------------------------------------
@@ -71,7 +89,9 @@ func scrape(c *colly.Collector, url string) int {
 	c.Visit(url)
 
 	fmt.Println("count:", count)
-	spew.Dump(dependents)
+	fmt.Println("len", len(dependents))
+	fmt.Println("nextPageUrl", nextPageUrl)
+	// spew.Dump(dependents)
 	return count
 }
 
