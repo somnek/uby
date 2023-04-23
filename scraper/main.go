@@ -28,14 +28,8 @@ func extractStars(e *colly.HTMLElement) int {
 	return stars
 }
 
-func scrape(c *colly.Collector, url string) int {
-	nextPageExist := true
-	page := 1
-	maxPerPage := 30
-	depSizeOnPage := 0 // reset to 0 on each page
-
-	// ----------------------------------------------
-	// count
+func extractCount(url string) int {
+	c := colly.NewCollector()
 	var count int
 
 	c.OnHTML("a.btn-link.selected", func(e *colly.HTMLElement) {
@@ -48,45 +42,41 @@ func scrape(c *colly.Collector, url string) int {
 		}
 	})
 
+	c.Visit(url)
+	return count
+}
+
+func scrape(url string, deps *[]Dep) (bool, string, []Dep) {
+	c := colly.NewCollector()
+
 	// ----------------------------------------------
 	// next page button
-	var nextPageUrl string
+	nextPageExist := false
+	var nextUrl string
 
 	c.OnHTML("a.btn.btn-outline.BtnGroup-item", func(e *colly.HTMLElement) {
 		if e.Text == "Next" {
-			nextPageUrl = e.Attr("href")
 			nextPageExist = true
 		} else {
 			nextPageExist = false
 		}
+		nextUrl = e.Attr("href")
 	})
 
 	// ----------------------------------------------
 	// list of deps
-	dependents := []Dep{}
-
 	c.OnHTML("div.Box-row", func(e *colly.HTMLElement) {
 		avatar := e.ChildAttr("img", "src")
 		user := e.ChildAttrs("a", "href")[0][1:]
 		repo := e.ChildText("a.text-bold")
 		stars := extractStars(e)
 
-		dependents = append(dependents, Dep{
-			user:   user,
+		*deps = append(*deps, Dep{user: user,
 			repo:   repo,
 			stars:  stars,
 			avatar: avatar,
 			url:    url,
 		})
-		depSizeOnPage += 1
-
-		if depSizeOnPage == maxPerPage {
-			url = nextPageUrl
-			page += 1
-			depSizeOnPage = 0
-		} else {
-			return
-		}
 	})
 
 	// ----------------------------------------------
@@ -94,19 +84,24 @@ func scrape(c *colly.Collector, url string) int {
 		fmt.Println("🛩️ Visiting", r.URL)
 	})
 
-	for nextPageExist {
-		c.Visit(url)
-	}
-
-	fmt.Println("count:", count)
-	fmt.Println("len", len(dependents))
-	// spew.Dump(dependents)
-	return count
+	c.Visit(url)
+	return nextPageExist, nextUrl, *deps
 }
 
 func main() {
-	c := colly.NewCollector()
 	// url := "https://github.com/aquasecurity/trivy/network/dependents"
 	url := "https://github.com/charmbracelet/bubbletea/network/dependents?package_id=UGFja2FnZS0yMjc1ODk0MDQy"
-	scrape(c, url)
+
+	estimatedCount := extractCount(url)
+
+	allDeps := []Dep{}
+	hasNextPage := false
+
+	hasNextPage, url, allDeps = scrape(url, &allDeps)
+
+	for hasNextPage {
+		hasNextPage, url, allDeps = scrape(url, &allDeps)
+	}
+	fmt.Println("estimated: ", estimatedCount)
+	fmt.Println("found:     ", len(allDeps))
 }
