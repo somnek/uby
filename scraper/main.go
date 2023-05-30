@@ -123,6 +123,5 @@ func main() {
 	fmt.Println("estimated: ", estimatedCount)
 	fmt.Println("found:     ", len(allDeps))
 
-	// write to .json file
 	writeJson(allDeps)
 }
