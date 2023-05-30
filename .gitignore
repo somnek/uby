@@ -1,6 +1,7 @@
 .vscode
 .env
 todo.md
+trash
 
 # Binaries for programs and plugins
 *.exe

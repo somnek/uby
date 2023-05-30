@@ -90,7 +90,7 @@ func scrape(url string, deps *[]Dep) (bool, string, []Dep) {
 
 func main() {
 	// url := "https://github.com/aquasecurity/trivy/network/dependents"
-	url := "https://github.com/charmbracelet/bubbletea/network/dependents?package_id=UGFja2FnZS0yMjc1ODk0MDQy"
+	url := "https://github.com/hwchase17/langchain/network/dependents"
 
 	estimatedCount := extractCount(url)
 
@@ -104,4 +104,5 @@ func main() {
 	}
 	fmt.Println("estimated: ", estimatedCount)
 	fmt.Println("found:     ", len(allDeps))
+
 }
