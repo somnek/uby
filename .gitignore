@@ -2,6 +2,7 @@
 .env
 todo.md
 trash
+*.json
 
 # Binaries for programs and plugins
 *.exe

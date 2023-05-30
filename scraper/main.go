@@ -1,10 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/log"
 	"github.com/gocolly/colly"
 )
 
@@ -14,11 +17,11 @@ func toNum(s string) int {
 }
 
 type Dep struct {
-	user   string
-	repo   string
-	stars  int
-	avatar string
-	url    string
+	User   string `json:"user"`
+	Repo   string `json:"repo"`
+	Stars  int    `json:"stars"`
+	Avatar string `json:"avatar"`
+	Url    string `json:"url"`
 }
 
 func extractStars(e *colly.HTMLElement) int {
@@ -72,26 +75,40 @@ func scrape(url string, deps *[]Dep) (bool, string, []Dep) {
 		repo := e.ChildText("a.text-bold")
 		stars := extractStars(e)
 
-		*deps = append(*deps, Dep{user: user,
-			repo:   repo,
-			stars:  stars,
-			avatar: avatar,
-			url:    url,
+		*deps = append(*deps, Dep{User: user,
+			Repo:   repo,
+			Stars:  stars,
+			Avatar: avatar,
+			Url:    url,
 		})
 	})
 
 	// ----------------------------------------------
 	c.OnRequest(func(r *colly.Request) {
-		fmt.Println("🛩️ Visiting", r.URL)
+		// fmt.Println("🛩️ Visiting", r.URL)
+		log.Info("count: ", len(*deps), "🛩️ Visiting", r.URL)
 	})
 
 	c.Visit(url)
 	return nextPageExist, nextUrl, *deps
 }
 
+func writeJson(deps []Dep) {
+	jsonData, err := json.MarshalIndent(deps, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = os.WriteFile("deps.json", jsonData, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Info("JSON data written to file: deps.json")
+}
+
 func main() {
-	// url := "https://github.com/aquasecurity/trivy/network/dependents"
-	url := "https://github.com/hwchase17/langchain/network/dependents"
+	url := "https://github.com/aquasecurity/trivy/network/dependents"
+	// url := "https://github.com/hwchase17/langchain/network/dependents"
 
 	estimatedCount := extractCount(url)
 
@@ -106,4 +123,6 @@ func main() {
 	fmt.Println("estimated: ", estimatedCount)
 	fmt.Println("found:     ", len(allDeps))
 
+	// write to .json file
+	writeJson(allDeps)
 }
