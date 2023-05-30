@@ -87,7 +87,8 @@ func scrape(url string, deps *[]Dep) (bool, string, []Dep) {
 	// ----------------------------------------------
 	c.OnRequest(func(r *colly.Request) {
 		// fmt.Println("🛩️ Visiting", r.URL)
-		log.Info("count: ", len(*deps), "🛩️ Visiting", r.URL)
+		logMsg := fmt.Sprintf("Count: %d 🛩️ Visiting %s", len(*deps), r.URL)
+		log.Info(logMsg)
 	})
 
 	c.Visit(url)
@@ -115,8 +116,8 @@ func sortByStars(deps []Dep) []Dep {
 }
 
 func main() {
-	url := "https://github.com/aquasecurity/trivy/network/dependents"
-	// url := "https://github.com/hwchase17/langchain/network/dependents"
+	// url := "https://github.com/aquasecurity/trivy/network/dependents"
+	url := "https://github.com/hwchase17/langchain/network/dependents"
 
 	estimatedCount := extractCount(url)
 
