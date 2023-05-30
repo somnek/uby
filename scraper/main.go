@@ -37,7 +37,8 @@ func extractCount(url string) int {
 		for i, line := range lines {
 			if strings.Contains(line, "Repositories") {
 				trimmed := strings.TrimSpace(lines[i-1])
-				count = toNum(trimmed)
+				cleaned := strings.Replace(trimmed, ",", "", -1)
+				count = toNum(cleaned)
 			}
 		}
 	})
