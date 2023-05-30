@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -106,6 +107,13 @@ func writeJson(deps []Dep) {
 	log.Info("JSON data written to file: deps.json")
 }
 
+func sortByStars(deps []Dep) []Dep {
+	sort.Slice(deps, func(i, j int) bool {
+		return deps[i].Stars > deps[j].Stars
+	})
+	return deps
+}
+
 func main() {
 	url := "https://github.com/aquasecurity/trivy/network/dependents"
 	// url := "https://github.com/hwchase17/langchain/network/dependents"
@@ -123,5 +131,6 @@ func main() {
 	fmt.Println("estimated: ", estimatedCount)
 	fmt.Println("found:     ", len(allDeps))
 
-	writeJson(allDeps)
+	sorted := sortByStars(allDeps)
+	writeJson(sorted)
 }
