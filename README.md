@@ -22,8 +22,9 @@ To use the Uby, follow these steps:
 
 ## Usage
 To run the dependent seach, use the following command in your terminal:
-```
-go run main.go
+```sh
+$ cd ./scraper
+$ go run main.go
 ```
 
 The application will begin crawling through the GitHub ecosystem to find repositories that depend on the specified repository. The search results will be saved in the `deps.json` file in the project directory.
