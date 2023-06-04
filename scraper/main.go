@@ -18,11 +18,12 @@ func toNum(s string) int {
 }
 
 type Dep struct {
-	User   string `json:"user"`
-	Repo   string `json:"repo"`
-	Stars  int    `json:"stars"`
-	Avatar string `json:"avatar"`
-	Url    string `json:"url"`
+	User    string `json:"user"`
+	Repo    string `json:"repo"`
+	Stars   int    `json:"stars"`
+	Avatar  string `json:"avatar"`
+	RepoUrl string `json:"repoUrl"`
+	DepUrl  string `json:"depUrl"`
 }
 
 func extractStars(e *colly.HTMLElement) int {
@@ -49,7 +50,7 @@ func extractCount(url string) int {
 
 	err := c.Visit(url)
 	if err != nil {
-		log.Fatal(err)
+		log.Info(err)
 	}
 	return count
 }
@@ -78,12 +79,14 @@ func scrape(url string, deps *[]Dep) (bool, string, []Dep) {
 		user := e.ChildAttrs("a", "href")[0][1:]
 		repo := e.ChildText("a.text-bold")
 		stars := extractStars(e)
+		repoUrl := fmt.Sprintf("https://github.com/%s/%s", user, repo)
 
 		*deps = append(*deps, Dep{User: user,
-			Repo:   repo,
-			Stars:  stars,
-			Avatar: avatar,
-			Url:    url,
+			Repo:    repo,
+			Stars:   stars,
+			Avatar:  avatar,
+			RepoUrl: repoUrl,
+			DepUrl:  url,
 		})
 	})
 
@@ -96,7 +99,7 @@ func scrape(url string, deps *[]Dep) (bool, string, []Dep) {
 
 	err := c.Visit(url)
 	if err != nil {
-		log.Fatal(err)
+		log.Info(err)
 	}
 	return nextPageExist, nextUrl, *deps
 }
@@ -123,10 +126,11 @@ func sortByStars(deps []Dep) []Dep {
 
 func main() {
 	// url := "https://github.com/aquasecurity/trivy/network/dependents"
-	// url := "https://github.com/hwchase17/langchain/network/dependents"
-	url := "https://github.com/RasaHQ/rasa/network/dependents"
+	url := "https://github.com/hwchase17/langchain/network/dependents"
+	// url := "https://github.com/RasaHQ/rasa/network/dependents"
 
 	estimatedCount := extractCount(url)
+	log.Info(fmt.Sprintf("Estimated count: %d", estimatedCount))
 
 	allDeps := []Dep{}
 	hasNextPage := false
