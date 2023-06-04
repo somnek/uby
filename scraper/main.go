@@ -47,7 +47,10 @@ func extractCount(url string) int {
 		}
 	})
 
-	c.Visit(url)
+	err := c.Visit(url)
+	if err != nil {
+		log.Fatal(err)
+	}
 	return count
 }
 
@@ -91,7 +94,10 @@ func scrape(url string, deps *[]Dep) (bool, string, []Dep) {
 		log.Info(logMsg)
 	})
 
-	c.Visit(url)
+	err := c.Visit(url)
+	if err != nil {
+		log.Fatal(err)
+	}
 	return nextPageExist, nextUrl, *deps
 }
 
@@ -117,7 +123,8 @@ func sortByStars(deps []Dep) []Dep {
 
 func main() {
 	// url := "https://github.com/aquasecurity/trivy/network/dependents"
-	url := "https://github.com/hwchase17/langchain/network/dependents"
+	// url := "https://github.com/hwchase17/langchain/network/dependents"
+	url := "https://github.com/RasaHQ/rasa/network/dependents"
 
 	estimatedCount := extractCount(url)
 
