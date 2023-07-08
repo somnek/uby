@@ -1,20 +1,18 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"sort"
-	"strconv"
-	"strings"
+	"log"
 
-	"github.com/charmbracelet/log"
-	"github.com/gocolly/colly"
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
-func toNum(s string) int {
-	i, _ := strconv.Atoi(s)
-	return i
+func main() {
+	p := tea.NewProgram(initialModel())
+	if _, err := p.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 type Dep struct {
@@ -26,123 +24,58 @@ type Dep struct {
 	DepUrl  string `json:"depUrl"`
 }
 
-func extractStars(e *colly.HTMLElement) int {
-	parent := e.ChildText("span.color-fg-muted.text-bold.pl-3")
-	split := strings.TrimSpace(strings.Split(parent, " ")[0])
-	stars := toNum(split)
-	return stars
+type model struct {
+	page  int
+	repo  string
+	input textinput.Model
+	deps  []Dep
+	err   error
 }
 
-func extractCount(url string) int {
-	c := colly.NewCollector()
-	var count int
+type (
+	errMsg error
+)
 
-	c.OnHTML("a.btn-link.selected", func(e *colly.HTMLElement) {
-		lines := strings.Split(e.Text, "\n")
-		for i, line := range lines {
-			if strings.Contains(line, "Repositories") {
-				trimmed := strings.TrimSpace(lines[i-1])
-				cleaned := strings.Replace(trimmed, ",", "", -1)
-				count = toNum(cleaned)
-			}
+func initialModel() model {
+	ti := textinput.New()
+	ti.Placeholder = "Enter a repo name, e.g. charmbracelet/bubbletea"
+	ti.Focus()
+	ti.CharLimit = 156
+	ti.Width = 50
+
+	return model{
+		input: ti,
+		err:   nil,
+	}
+}
+
+func (m model) Init() tea.Cmd {
+	return textinput.Blink
+}
+
+func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEnter, tea.KeyCtrlC, tea.KeyEsc:
+			return m, tea.Quit
 		}
-	})
 
-	err := c.Visit(url)
-	if err != nil {
-		log.Info(err)
+	case errMsg:
+		m.err = msg
+		return m, nil
 	}
-	return count
+
+	m.input, cmd = m.input.Update(msg)
+	return m, cmd
 }
 
-func scrape(url string, deps *[]Dep) (bool, string, []Dep) {
-	c := colly.NewCollector()
-
-	// ----------------------------------------------
-	// next page button
-	nextPageExist := false
-	var nextUrl string
-
-	c.OnHTML("a.btn.btn-outline.BtnGroup-item", func(e *colly.HTMLElement) {
-		if e.Text == "Next" {
-			nextPageExist = true
-		} else {
-			nextPageExist = false
-		}
-		nextUrl = e.Attr("href")
-	})
-
-	// ----------------------------------------------
-	// list of deps
-	c.OnHTML("div.Box-row", func(e *colly.HTMLElement) {
-		avatar := e.ChildAttr("img", "src")
-		user := e.ChildAttrs("a", "href")[0][1:]
-		repo := e.ChildText("a.text-bold")
-		stars := extractStars(e)
-		repoUrl := fmt.Sprintf("https://github.com/%s/%s", user, repo)
-
-		*deps = append(*deps, Dep{User: user,
-			Repo:    repo,
-			Stars:   stars,
-			Avatar:  avatar,
-			RepoUrl: repoUrl,
-			DepUrl:  url,
-		})
-	})
-
-	// ----------------------------------------------
-	c.OnRequest(func(r *colly.Request) {
-		// fmt.Println("🛩️ Visiting", r.URL)
-		logMsg := fmt.Sprintf("Count: %d 🛩️ Visiting %s", len(*deps), r.URL)
-		log.Info(logMsg)
-	})
-
-	err := c.Visit(url)
-	if err != nil {
-		log.Info(err)
-	}
-	return nextPageExist, nextUrl, *deps
-}
-
-func writeJson(deps []Dep) {
-	jsonData, err := json.MarshalIndent(deps, "", "  ")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = os.WriteFile("deps.json", jsonData, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Info("JSON data written to file: deps.json")
-}
-
-func sortByStars(deps []Dep) []Dep {
-	sort.Slice(deps, func(i, j int) bool {
-		return deps[i].Stars > deps[j].Stars
-	})
-	return deps
-}
-
-func main() {
-	// url := "https://github.com/aquasecurity/trivy/network/dependents"
-	url := "https://github.com/hwchase17/langchain/network/dependents"
-	// url := "https://github.com/RasaHQ/rasa/network/dependents"
-
-	estimatedCount := extractCount(url)
-	log.Info(fmt.Sprintf("Estimated count: %d", estimatedCount))
-
-	allDeps := []Dep{}
-	hasNextPage := false
-
-	hasNextPage, url, allDeps = scrape(url, &allDeps)
-
-	for hasNextPage {
-		hasNextPage, url, allDeps = scrape(url, &allDeps)
-	}
-	fmt.Println("estimated: ", estimatedCount)
-	fmt.Println("found:     ", len(allDeps))
-
-	sorted := sortByStars(allDeps)
-	writeJson(sorted)
+func (m model) View() string {
+	return fmt.Sprintf(
+		"🥦 Uby\n\n%s\n\n%s",
+		m.input.View(),
+		"(esc to quit)",
+	) + "\n"
 }
