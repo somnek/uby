@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 func main() {
@@ -15,21 +17,13 @@ func main() {
 	}
 }
 
-type Dep struct {
-	User    string `json:"user"`
-	Repo    string `json:"repo"`
-	Stars   int    `json:"stars"`
-	Avatar  string `json:"avatar"`
-	RepoUrl string `json:"repoUrl"`
-	DepUrl  string `json:"depUrl"`
-}
-
 type model struct {
-	page  int
-	repo  string
-	input textinput.Model
-	deps  []Dep
-	err   error
+	page    int
+	repo    string
+	input   textinput.Model
+	deps    []Dep
+	err     error
+	spinner spinner.Model
 }
 
 type (
@@ -43,39 +37,71 @@ func initialModel() model {
 	ti.CharLimit = 156
 	ti.Width = 50
 
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
+
 	return model{
-		input: ti,
-		err:   nil,
+		input:   ti,
+		page:    0,
+		err:     nil,
+		spinner: s,
 	}
 }
 
 func (m model) Init() tea.Cmd {
+	// return tea.Batch(textinput.Blink, m.spinner.Tick)
 	return textinput.Blink
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
+	var cmdSpinner tea.Cmd
+	var cmdInput tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
-		case tea.KeyEnter, tea.KeyCtrlC, tea.KeyEsc:
+
+		case tea.KeyCtrlC, tea.KeyEsc:
 			return m, tea.Quit
+
+		case tea.KeyEnter:
+			if m.page == 0 {
+				// todo: validate/clean input
+				m.page = 1
+				m.repo = m.input.Value()
+				// go SomeLongTask()
+				return m, m.spinner.Tick
+			}
 		}
 
 	case errMsg:
 		m.err = msg
 		return m, nil
+
 	}
 
-	m.input, cmd = m.input.Update(msg)
-	return m, cmd
+	m.spinner, cmdSpinner = m.spinner.Update(msg)
+	m.input, cmdInput = m.input.Update(msg)
+
+	return m, tea.Batch(cmd, cmdSpinner, cmdInput)
+
 }
 
 func (m model) View() string {
-	return fmt.Sprintf(
-		"🥦 Uby\n\n%s\n\n%s",
-		m.input.View(),
-		"(esc to quit)",
-	) + "\n"
+	title := "🥦 Uby"
+	body := ""
+	footer := "(esc to quit)"
+
+	switch m.page {
+	case 0:
+		body = m.input.View()
+	case 1:
+		body = fmt.Sprintf("%s Scraping", m.spinner.View())
+	}
+
+	outText := fmt.Sprintf("%s\n\n%s\n\n%s", title, body, footer)
+	return outText
+
 }
