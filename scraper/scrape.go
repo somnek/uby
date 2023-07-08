@@ -1,6 +1,10 @@
 package main
 
-import "time"
+import (
+	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
+)
 
 type Dep struct {
 	User    string `json:"user"`
@@ -8,10 +12,15 @@ type Dep struct {
 	Stars   int    `json:"stars"`
 	Avatar  string `json:"avatar"`
 	RepoUrl string `json:"repoUrl"`
-	DepUrl  string `json:"depUrl"`
+	Url     string `json:"depUrl"`
 }
 
-func SomeLongTask() {
-	// ...
-	time.Sleep(2 * time.Second)
+type Done string
+
+func SomeLongTask() tea.Cmd {
+	return func() tea.Msg {
+		// ...
+		time.Sleep(2 * time.Second)
+		return Done("done")
+	}
 }

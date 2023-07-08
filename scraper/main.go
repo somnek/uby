@@ -24,6 +24,7 @@ type model struct {
 	deps    []Dep
 	err     error
 	spinner spinner.Model
+	done    bool
 }
 
 type (
@@ -50,8 +51,8 @@ func initialModel() model {
 }
 
 func (m model) Init() tea.Cmd {
-	// return tea.Batch(textinput.Blink, m.spinner.Tick)
-	return textinput.Blink
+	return tea.Batch(textinput.Blink, m.spinner.Tick)
+	// return textinput.Blink
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -71,13 +72,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// todo: validate/clean input
 				m.page = 1
 				m.repo = m.input.Value()
-				// go SomeLongTask()
-				return m, m.spinner.Tick
+
+				return m, SomeLongTask()
 			}
+
 		}
 
 	case errMsg:
 		m.err = msg
+		return m, nil
+
+	case Done:
+		m.done = true
 		return m, nil
 
 	}
@@ -98,10 +104,15 @@ func (m model) View() string {
 	case 0:
 		body = m.input.View()
 	case 1:
-		body = fmt.Sprintf("%s Scraping", m.spinner.View())
+		if !m.done {
+			body += m.spinner.View()
+			body += "Fetching dependencies..."
+		} else {
+			body = "Done!"
+		}
 	}
 
-	outText := fmt.Sprintf("%s\n\n%s\n\n%s", title, body, footer)
+	outText := fmt.Sprintf("%s\n\n%s\n\n%s\n", title, body, footer)
 	return outText
 
 }
