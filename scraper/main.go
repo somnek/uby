@@ -25,6 +25,7 @@ type model struct {
 	err     error
 	spinner spinner.Model
 	done    bool
+	count   string
 }
 
 type (
@@ -52,7 +53,6 @@ func initialModel() model {
 
 func (m model) Init() tea.Cmd {
 	return tea.Batch(textinput.Blink, m.spinner.Tick)
-	// return textinput.Blink
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -72,8 +72,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// todo: validate/clean input
 				m.page = 1
 				m.repo = m.input.Value()
-
-				return m, SomeLongTask()
+				return m, Scrape(m.repo)
 			}
 
 		}
@@ -84,6 +83,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case Done:
 		m.done = true
+		m.count = string(msg)
 		return m, nil
 
 	}
@@ -112,7 +112,7 @@ func (m model) View() string {
 		}
 	}
 
-	outText := fmt.Sprintf("%s\n\n%s\n\n%s\n", title, body, footer)
+	outText := fmt.Sprintf("%s\n\n%s\n\n%s\n%s", title, body, footer, m.count)
 	return outText
 
 }
