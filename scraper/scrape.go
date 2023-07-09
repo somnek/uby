@@ -7,7 +7,6 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/log"
 	"github.com/gocolly/colly"
 )
 
@@ -35,9 +34,6 @@ func toNum(s string) int {
 	return i
 }
 
-func formatUrl(url string) string {
-	return fmt.Sprintf("https://github.com/%s/network/dependents", url)
-}
 func extractStars(e *colly.HTMLElement) int {
 	parent := e.ChildText("span.color-fg-muted.text-bold.pl-3")
 	split := strings.TrimSpace(strings.Split(parent, " ")[0])
@@ -45,32 +41,46 @@ func extractStars(e *colly.HTMLElement) int {
 	return stars
 }
 
-func extractCount(url string) int {
+func scrapePage(url string) (bool, string) {
 	c := colly.NewCollector()
-	var count int
 
-	c.OnHTML("a.btn-link.selected", func(e *colly.HTMLElement) {
-		lines := strings.Split(e.Text, "\n")
-		for i, line := range lines {
-			if strings.Contains(line, "Repositories") {
-				trimmed := strings.TrimSpace(lines[i-1])
-				cleaned := strings.ReplaceAll(trimmed, ",", "")
-				count = toNum(cleaned)
-			}
+	// ----------------------------------------------
+	// next page button
+	nextPageExist := false
+	var nextUrl string
+
+	c.OnHTML("a.btn.btn-outline.BtnGroup-item", func(e *colly.HTMLElement) {
+		if e.Text == "Next" {
+			nextPageExist = true
+		} else {
+			nextPageExist = false
 		}
+		nextUrl = e.Attr("href")
 	})
 
 	err := c.Visit(url)
 	if err != nil {
-		log.Info(err)
+		return false, ""
 	}
-	return count
+	return nextPageExist, nextUrl
 }
 
 func Scrape(url string) tea.Cmd {
-	url = formatUrl(url)
 	return func() tea.Msg {
-		count := extractCount(url)
-		return Done(fmt.Sprintf("done %d", count))
+		var nextUrl string
+		var pages int
+		var shouldContinue = true
+
+		// next pages
+		for shouldContinue {
+			if pages == 0 {
+				shouldContinue, nextUrl = scrapePage(url)
+			} else {
+				shouldContinue, nextUrl = scrapePage(nextUrl)
+			}
+			pages += 1
+		}
+
+		return Done(fmt.Sprintf("%d total repo...", pages))
 	}
 }
