@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gocolly/colly"
@@ -20,14 +19,7 @@ type Dep struct {
 }
 
 type Done string
-
-func SomeLongTask() tea.Cmd {
-	return func() tea.Msg {
-		// ...
-		time.Sleep(2 * time.Second)
-		return Done("done")
-	}
-}
+type InitScrapeTick string
 
 func toNum(s string) int {
 	i, _ := strconv.Atoi(s)
@@ -63,6 +55,12 @@ func scrapePage(url string) (bool, string) {
 		return false, ""
 	}
 	return nextPageExist, nextUrl
+}
+
+func InitScrape() tea.Cmd {
+	return func() tea.Msg {
+		return InitScrapeTick("Tick")
+	}
 }
 
 func Scrape(url string) tea.Cmd {

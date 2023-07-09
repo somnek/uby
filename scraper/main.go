@@ -25,7 +25,7 @@ type model struct {
 	err     error
 	spinner spinner.Model
 	done    bool
-	count   string
+	count   int
 }
 
 type (
@@ -34,10 +34,10 @@ type (
 
 func initialModel() model {
 	ti := textinput.New()
-	ti.Placeholder = "Enter a repo name, e.g. charmbracelet/bubbletea"
+	ti.Placeholder = "Enter a dependency graph URL..."
 	ti.Focus()
-	ti.CharLimit = 156
-	ti.Width = 50
+	ti.CharLimit = 200
+	ti.Width = 200
 
 	s := spinner.New()
 	s.Spinner = spinner.Dot
@@ -52,7 +52,7 @@ func initialModel() model {
 }
 
 func (m model) Init() tea.Cmd {
-	return tea.Batch(textinput.Blink, m.spinner.Tick)
+	return tea.Batch(textinput.Blink)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -72,7 +72,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// todo: validate/clean input
 				m.page = 1
 				m.repo = m.input.Value()
-				return m, Scrape(m.repo)
+				// hardcodeUrl := "https://github.com/aquasecurity/trivy/network/dependents"
+				return m, tea.Batch(InitScrape(), m.spinner.Tick)
 			}
 
 		}
@@ -83,9 +84,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case Done:
 		m.done = true
-		m.count = string(msg)
+		m.count++
 		return m, nil
 
+	case InitScrapeTick:
+		return m, nil
+
+	case scrapeTick:
+		nextUrl, nextPageExist := msg
+		return m, Batch(Scrape(nextUrl), m.spinner.Tick)
 	}
 
 	m.spinner, cmdSpinner = m.spinner.Update(msg)
@@ -112,7 +119,7 @@ func (m model) View() string {
 		}
 	}
 
-	outText := fmt.Sprintf("%s\n\n%s\n\n%s\n%s", title, body, footer, m.count)
+	outText := fmt.Sprintf("%s\n\n%s\n\n%s\n%d", title, body, footer, m.count)
 	return outText
 
 }
