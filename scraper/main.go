@@ -1,11 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"os"
-	"sort"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -45,7 +42,7 @@ func initialModel() model {
 	ti.Width = 200
 
 	s := spinner.New()
-	s.Spinner = spinner.Dot
+	s.Spinner = spinner.Points
 	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 
 	return model{
@@ -56,24 +53,6 @@ func initialModel() model {
 		pages:   0,
 		deps:    []Dep{},
 	}
-}
-
-func writeJson(deps []Dep) {
-	jsonData, err := json.MarshalIndent(deps, "", "  ")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = os.WriteFile("deps.json", jsonData, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func sortByStars(deps *[]Dep) {
-	sort.Slice(*deps, func(i, j int) bool {
-		return (*deps)[i].Stars > (*deps)[j].Stars
-	})
 }
 
 func (m model) Init() tea.Cmd {
@@ -97,12 +76,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// todo: validate/clean input
 				m.tab = 1
 				m.repo = m.input.Value()
-				// <-- ️ HARD CODED URL FOR TESTING 🚨
 				if m.repo == "" {
 					hardcodeUrl := "https://github.com/aquasecurity/trivy/network/dependents"
 					m.repo = hardcodeUrl
 				}
-				// 🚨️ HARD CODED URL FOR TESTING -->
 				return m, tea.Batch(InitScrape(), m.spinner.Tick)
 			}
 		}
@@ -119,12 +96,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.pages++
 		m.deps = append(m.deps, deps...)
 		m.count = len(m.deps)
+
 		if nextUrl != "" {
-			m.logs = fmt.Sprintf("📦 %s\n", nextUrl)
+			m.logs = fmt.Sprintf("📦 %s", nextUrl)
 			return m, tea.Batch(Scrape(nextUrl), m.spinner.Tick)
 		} else {
-			sortByStars(&m.deps)
-			writeJson(m.deps)
+			SortByStars(&m.deps)
+			WriteJson(m.deps)
 			m.logs += "🧨 Write deps.json..."
 			return m, tea.Quit
 		}
@@ -135,14 +113,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	return m, tea.Batch(cmd, cmdSpinner, cmdInput)
 
-}
-
-func concatDeps(deps []Dep) string {
-	var out string
-	for _, dep := range deps {
-		out += fmt.Sprintf("📦 %s\n", dep.RepoUrl)
-	}
-	return out
 }
 
 func (m model) View() string {
@@ -156,7 +126,7 @@ func (m model) View() string {
 	case 1:
 		if !m.done {
 			body += m.spinner.View()
-			body += fmt.Sprintf("Fetching dependencies from %s...", m.repo)
+			body += fmt.Sprintf(" Fetching dependencies from %s...", m.repo)
 		} else {
 			body = "Done!"
 		}
