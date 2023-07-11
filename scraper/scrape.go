@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gocolly/colly"
@@ -14,7 +16,6 @@ type Dep struct {
 	Avatar  string `json:"avatar"`
 	RepoUrl string `json:"repoUrl"`
 	Url     string `json:"depUrl"`
-	Page    int    `json:"page"`
 }
 
 type PageTick struct {
@@ -23,7 +24,19 @@ type PageTick struct {
 }
 type InitScrapeTick string
 
-func scrapePage(url string, deps []Dep) (string, []Dep) {
+func toNum(s string) int {
+	i, _ := strconv.Atoi(s)
+	return i
+}
+
+func extractStars(e *colly.HTMLElement) int {
+	parent := e.ChildText("span.color-fg-muted.text-bold.pl-3")
+	split := strings.TrimSpace(strings.Split(parent, " ")[0])
+	stars := toNum(split)
+	return stars
+}
+
+func scrapePage(url string) (string, []Dep) {
 	c := colly.NewCollector()
 	var nextUrl string
 
@@ -37,14 +50,17 @@ func scrapePage(url string, deps []Dep) (string, []Dep) {
 	})
 
 	// deps
+	var deps []Dep
 	c.OnHTML("div.Box-row", func(e *colly.HTMLElement) {
 		avatar := e.ChildAttr("img", "src")
 		user := e.ChildAttrs("a", "href")[0][1:]
 		repo := e.ChildText("a.text-bold")
+		stars := extractStars(e)
 		repoUrl := fmt.Sprintf("https://github.com/%s/%s", user, repo)
 
 		deps = append(deps, Dep{User: user,
 			Repo:    repo,
+			Stars:   stars,
 			Avatar:  avatar,
 			RepoUrl: repoUrl,
 		})
@@ -52,7 +68,7 @@ func scrapePage(url string, deps []Dep) (string, []Dep) {
 
 	err := c.Visit(url)
 	if err != nil {
-		return "", deps
+		return "", nil
 	}
 	return nextUrl, deps
 }
@@ -63,13 +79,13 @@ func InitScrape() tea.Cmd {
 	}
 }
 
-func Scrape(url string, deps *[]Dep) tea.Cmd {
+func Scrape(url string) tea.Cmd {
 	return func() tea.Msg {
-		nextUrl, deps := scrapePage(url, *deps)
+		nextUrl, newDeps := scrapePage(url)
 
 		return PageTick{
 			nextUrl: nextUrl,
-			deps:    deps,
+			deps:    newDeps,
 		}
 	}
 }

@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
+	"sort"
 
 	"github.com/charmbracelet/bubbles/spinner"
 	"github.com/charmbracelet/bubbles/textinput"
@@ -55,6 +58,24 @@ func initialModel() model {
 	}
 }
 
+func writeJson(deps []Dep) {
+	jsonData, err := json.MarshalIndent(deps, "", "  ")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = os.WriteFile("deps.json", jsonData, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func sortByStars(deps *[]Dep) {
+	sort.Slice(*deps, func(i, j int) bool {
+		return (*deps)[i].Stars > (*deps)[j].Stars
+	})
+}
+
 func (m model) Init() tea.Cmd {
 	return tea.Batch(textinput.Blink)
 }
@@ -77,12 +98,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.tab = 1
 				m.repo = m.input.Value()
 				// <-- ️ HARD CODED URL FOR TESTING 🚨
-				hardcodeUrl := "https://github.com/aquasecurity/trivy/network/dependents"
-				m.repo = hardcodeUrl
+				if m.repo == "" {
+					hardcodeUrl := "https://github.com/aquasecurity/trivy/network/dependents"
+					m.repo = hardcodeUrl
+				}
 				// 🚨️ HARD CODED URL FOR TESTING -->
 				return m, tea.Batch(InitScrape(), m.spinner.Tick)
 			}
-
 		}
 
 	case errMsg:
@@ -90,17 +112,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case InitScrapeTick:
-		return m, tea.Batch(Scrape(m.repo, &m.deps), m.spinner.Tick)
+		return m, tea.Batch(Scrape(m.repo), m.spinner.Tick)
 
 	case PageTick:
 		nextUrl, deps := msg.nextUrl, msg.deps
-		m.count += len(deps)
+		m.pages++
+		m.deps = append(m.deps, deps...)
+		m.count = len(m.deps)
 		if nextUrl != "" {
-			// m.logs += concatDeps(deps)
-			m.pages++
-			return m, tea.Batch(Scrape(nextUrl, &m.deps), m.spinner.Tick)
+			m.logs = fmt.Sprintf("📦 %s\n", nextUrl)
+			return m, tea.Batch(Scrape(nextUrl), m.spinner.Tick)
 		} else {
-			m.logs += "🧨"
+			sortByStars(&m.deps)
+			writeJson(m.deps)
+			m.logs += "🧨 Write deps.json..."
 			return m, tea.Quit
 		}
 	}
@@ -137,7 +162,7 @@ func (m model) View() string {
 		}
 	}
 
-	outText := fmt.Sprintf("%s\n\n%s\n\n%s\n\npages: %d\n%d\n%s\n", title, body, footer, m.pages, m.count, m.logs)
+	outText := fmt.Sprintf("%s\n\n%s\n\n%s\n\npages: %d\nrepos: %d\n%s\n", title, body, footer, m.pages, m.count, m.logs)
 	return outText
 
 }
