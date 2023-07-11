@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -68,6 +69,7 @@ func scrapePage(url string) (string, []Dep) {
 
 	err := c.Visit(url)
 	if err != nil {
+		log.Fatal(err)
 		return "", nil
 	}
 	return nextUrl, deps
