@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gocolly/colly"
 )
@@ -12,18 +14,20 @@ type Dep struct {
 	Avatar  string `json:"avatar"`
 	RepoUrl string `json:"repoUrl"`
 	Url     string `json:"depUrl"`
+	Page    int    `json:"page"`
 }
 
-type ScrapeTick struct {
+type PageTick struct {
 	nextUrl string
+	deps    []Dep
 }
 type InitScrapeTick string
 
-func scrapePage(url string) string {
+func scrapePage(url string, deps []Dep) (string, []Dep) {
 	c := colly.NewCollector()
 	var nextUrl string
 
-	// next page button
+	// pagination
 	c.OnHTML("a.btn.btn-outline.BtnGroup-item", func(e *colly.HTMLElement) {
 		if e.Text == "Next" {
 			nextUrl = e.Attr("href")
@@ -32,11 +36,25 @@ func scrapePage(url string) string {
 		}
 	})
 
+	// deps
+	c.OnHTML("div.Box-row", func(e *colly.HTMLElement) {
+		avatar := e.ChildAttr("img", "src")
+		user := e.ChildAttrs("a", "href")[0][1:]
+		repo := e.ChildText("a.text-bold")
+		repoUrl := fmt.Sprintf("https://github.com/%s/%s", user, repo)
+
+		deps = append(deps, Dep{User: user,
+			Repo:    repo,
+			Avatar:  avatar,
+			RepoUrl: repoUrl,
+		})
+	})
+
 	err := c.Visit(url)
 	if err != nil {
-		return ""
+		return "", deps
 	}
-	return nextUrl
+	return nextUrl, deps
 }
 
 func InitScrape() tea.Cmd {
@@ -45,12 +63,13 @@ func InitScrape() tea.Cmd {
 	}
 }
 
-func Scrape(url string) tea.Cmd {
+func Scrape(url string, deps *[]Dep) tea.Cmd {
 	return func() tea.Msg {
-		nextUrl := scrapePage(url)
+		nextUrl, deps := scrapePage(url, *deps)
 
-		return ScrapeTick{
+		return PageTick{
 			nextUrl: nextUrl,
+			deps:    deps,
 		}
 	}
 }

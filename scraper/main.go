@@ -18,15 +18,16 @@ func main() {
 }
 
 type model struct {
-	page    int
+	tab     int
 	repo    string
 	input   textinput.Model
 	deps    []Dep
 	err     error
 	spinner spinner.Model
 	done    bool
-	count   int
+	pages   int
 	logs    string
+	count   int
 }
 
 type (
@@ -46,10 +47,11 @@ func initialModel() model {
 
 	return model{
 		input:   ti,
-		page:    0,
+		tab:     0,
 		err:     nil,
 		spinner: s,
-		count:   0,
+		pages:   0,
+		deps:    []Dep{},
 	}
 }
 
@@ -70,14 +72,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case tea.KeyEnter:
-			if m.page == 0 {
+			if m.tab == 0 {
 				// todo: validate/clean input
-				m.page = 1
+				m.tab = 1
 				m.repo = m.input.Value()
-				// <-- ️ HARD CODED URL FOR TESTING ⚠️
+				// <-- ️ HARD CODED URL FOR TESTING 🚨
 				hardcodeUrl := "https://github.com/aquasecurity/trivy/network/dependents"
 				m.repo = hardcodeUrl
-				// ⚠️ HARD CODED URL FOR TESTING -->
+				// 🚨️ HARD CODED URL FOR TESTING -->
 				return m, tea.Batch(InitScrape(), m.spinner.Tick)
 			}
 
@@ -88,14 +90,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case InitScrapeTick:
-		return m, tea.Batch(Scrape(m.repo), m.spinner.Tick)
+		return m, tea.Batch(Scrape(m.repo, &m.deps), m.spinner.Tick)
 
-	case ScrapeTick:
-		nextUrl := msg.nextUrl
+	case PageTick:
+		nextUrl, deps := msg.nextUrl, msg.deps
+		m.count += len(deps)
 		if nextUrl != "" {
-			m.count++
-			m.logs += fmt.Sprintf("📦 %s\n", nextUrl)
-			return m, tea.Batch(Scrape(nextUrl), m.spinner.Tick)
+			// m.logs += concatDeps(deps)
+			m.pages++
+			return m, tea.Batch(Scrape(nextUrl, &m.deps), m.spinner.Tick)
 		} else {
 			m.logs += "🧨"
 			return m, tea.Quit
@@ -109,12 +112,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 }
 
+func concatDeps(deps []Dep) string {
+	var out string
+	for _, dep := range deps {
+		out += fmt.Sprintf("📦 %s\n", dep.RepoUrl)
+	}
+	return out
+}
+
 func (m model) View() string {
 	title := "🥦 Uby"
 	body := ""
 	footer := "(esc to quit)"
 
-	switch m.page {
+	switch m.tab {
 	case 0:
 		body = m.input.View()
 	case 1:
@@ -126,7 +137,7 @@ func (m model) View() string {
 		}
 	}
 
-	outText := fmt.Sprintf("%s\n\n%s\n\n%s\ncount: %d\n\n%s\n\n", title, body, footer, m.count, m.logs)
+	outText := fmt.Sprintf("%s\n\n%s\n\n%s\n\npages: %d\n%d\n%s\n", title, body, footer, m.pages, m.count, m.logs)
 	return outText
 
 }
