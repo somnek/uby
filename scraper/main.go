@@ -26,6 +26,7 @@ type model struct {
 	spinner spinner.Model
 	done    bool
 	count   int
+	logs    string
 }
 
 type (
@@ -48,6 +49,7 @@ func initialModel() model {
 		page:    0,
 		err:     nil,
 		spinner: s,
+		count:   0,
 	}
 }
 
@@ -72,7 +74,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// todo: validate/clean input
 				m.page = 1
 				m.repo = m.input.Value()
-				// hardcodeUrl := "https://github.com/aquasecurity/trivy/network/dependents"
+				// <-- ️ HARD CODED URL FOR TESTING ⚠️
+				hardcodeUrl := "https://github.com/aquasecurity/trivy/network/dependents"
+				m.repo = hardcodeUrl
+				// ⚠️ HARD CODED URL FOR TESTING -->
 				return m, tea.Batch(InitScrape(), m.spinner.Tick)
 			}
 
@@ -82,17 +87,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.err = msg
 		return m, nil
 
-	case Done:
-		m.done = true
-		m.count++
-		return m, nil
-
 	case InitScrapeTick:
-		return m, nil
+		return m, tea.Batch(Scrape(m.repo), m.spinner.Tick)
 
-	case scrapeTick:
-		nextUrl, nextPageExist := msg
-		return m, Batch(Scrape(nextUrl), m.spinner.Tick)
+	case ScrapeTick:
+		nextUrl := msg.nextUrl
+		if nextUrl != "" {
+			m.count++
+			m.logs += fmt.Sprintf("📦 %s\n", nextUrl)
+			return m, tea.Batch(Scrape(nextUrl), m.spinner.Tick)
+		} else {
+			m.logs += "🧨"
+			return m, tea.Quit
+		}
 	}
 
 	m.spinner, cmdSpinner = m.spinner.Update(msg)
@@ -113,13 +120,13 @@ func (m model) View() string {
 	case 1:
 		if !m.done {
 			body += m.spinner.View()
-			body += "Fetching dependencies..."
+			body += fmt.Sprintf("Fetching dependencies from %s...", m.repo)
 		} else {
 			body = "Done!"
 		}
 	}
 
-	outText := fmt.Sprintf("%s\n\n%s\n\n%s\n%d", title, body, footer, m.count)
+	outText := fmt.Sprintf("%s\n\n%s\n\n%s\ncount: %d\n\n%s\n\n", title, body, footer, m.count, m.logs)
 	return outText
 
 }

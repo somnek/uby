@@ -1,10 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gocolly/colly"
 )
@@ -18,43 +14,29 @@ type Dep struct {
 	Url     string `json:"depUrl"`
 }
 
-type Done string
+type ScrapeTick struct {
+	nextUrl string
+}
 type InitScrapeTick string
 
-func toNum(s string) int {
-	i, _ := strconv.Atoi(s)
-	return i
-}
-
-func extractStars(e *colly.HTMLElement) int {
-	parent := e.ChildText("span.color-fg-muted.text-bold.pl-3")
-	split := strings.TrimSpace(strings.Split(parent, " ")[0])
-	stars := toNum(split)
-	return stars
-}
-
-func scrapePage(url string) (bool, string) {
+func scrapePage(url string) string {
 	c := colly.NewCollector()
-
-	// ----------------------------------------------
-	// next page button
-	nextPageExist := false
 	var nextUrl string
 
+	// next page button
 	c.OnHTML("a.btn.btn-outline.BtnGroup-item", func(e *colly.HTMLElement) {
 		if e.Text == "Next" {
-			nextPageExist = true
+			nextUrl = e.Attr("href")
 		} else {
-			nextPageExist = false
+			nextUrl = ""
 		}
-		nextUrl = e.Attr("href")
 	})
 
 	err := c.Visit(url)
 	if err != nil {
-		return false, ""
+		return ""
 	}
-	return nextPageExist, nextUrl
+	return nextUrl
 }
 
 func InitScrape() tea.Cmd {
@@ -65,20 +47,10 @@ func InitScrape() tea.Cmd {
 
 func Scrape(url string) tea.Cmd {
 	return func() tea.Msg {
-		var nextUrl string
-		var pages int
-		var shouldContinue = true
+		nextUrl := scrapePage(url)
 
-		// next pages
-		for shouldContinue {
-			if pages == 0 {
-				shouldContinue, nextUrl = scrapePage(url)
-			} else {
-				shouldContinue, nextUrl = scrapePage(nextUrl)
-			}
-			pages += 1
+		return ScrapeTick{
+			nextUrl: nextUrl,
 		}
-
-		return Done(fmt.Sprintf("%d total repo...", pages))
 	}
 }
