@@ -42,7 +42,7 @@ func scrapePage(url string) (string, []Dep) {
 	var nextUrl string
 
 	// pagination
-	c.OnHTML("a.btn.btn-outline.BtnGroup-item", func(e *colly.HTMLElement) {
+	c.OnHTML("a.btn.BtnGroup-item", func(e *colly.HTMLElement) {
 		if e.Text == "Next" {
 			nextUrl = e.Attr("href")
 		} else {
