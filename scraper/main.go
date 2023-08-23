@@ -18,7 +18,7 @@ func main() {
 }
 
 type model struct {
-	tab     int
+	state   int
 	repo    string
 	input   textinput.Model
 	deps    []Dep
@@ -47,7 +47,7 @@ func initialModel() model {
 
 	return model{
 		input:   ti,
-		tab:     0,
+		state:   0,
 		err:     nil,
 		spinner: s,
 		pages:   0,
@@ -72,9 +72,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 
 		case tea.KeyEnter:
-			if m.tab == 0 {
+			if m.state == 0 {
 				// todo: validate/clean input
-				m.tab = 1
+				m.state = 1
 				m.repo = m.input.Value()
 				if m.repo == "" {
 					hardcodeUrl := "https://github.com/aquasecurity/trivy/network/dependents"
@@ -103,7 +103,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			SortByStars(&m.deps)
 			WriteJson(m.deps)
-			m.logs += "🧨 Write deps.json..."
+			m.logs = "\nDone! 🧨 Write deps.json..."
+			m.done = true
 			return m, tea.Quit
 		}
 	}
@@ -120,15 +121,13 @@ func (m model) View() string {
 	body := ""
 	footer := "(esc to quit)"
 
-	switch m.tab {
+	switch m.state {
 	case 0:
 		body = m.input.View()
 	case 1:
 		if !m.done {
 			body += m.spinner.View()
 			body += fmt.Sprintf(" Fetching dependencies from %s...", m.repo)
-		} else {
-			body = "Done!"
 		}
 	}
 
