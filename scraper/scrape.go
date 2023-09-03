@@ -25,7 +25,12 @@ type PageTick struct {
 }
 type InitScrapeTick string
 
-func toNum(s string) int {
+func ToNum(s string) int {
+	// remove commas and spaces
+	s = strings.ReplaceAll(s, ",", "")
+	s = strings.ReplaceAll(s, " ", "")
+
+	// convert to int
 	i, _ := strconv.Atoi(s)
 	return i
 }
@@ -33,7 +38,7 @@ func toNum(s string) int {
 func extractStars(e *colly.HTMLElement) int {
 	parent := e.ChildText("span.color-fg-muted.text-bold.pl-3")
 	split := strings.TrimSpace(strings.Split(parent, " ")[0])
-	stars := toNum(split)
+	stars := ToNum(split)
 	return stars
 }
 
