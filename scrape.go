@@ -8,6 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gocolly/colly"
+	"github.com/gocolly/colly/extensions"
 )
 
 type Dep struct {
@@ -44,6 +45,10 @@ func extractStars(e *colly.HTMLElement) int {
 
 func scrapePage(url string) (string, []Dep) {
 	c := colly.NewCollector()
+	// add random user agent
+	extensions.RandomUserAgent(c)
+	c.CheckHead = true
+
 	var nextUrl string
 
 	// pagination
