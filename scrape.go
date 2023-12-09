@@ -2,13 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/gocolly/colly"
-	"github.com/gocolly/colly/extensions"
 )
 
 type Dep struct {
@@ -43,12 +41,13 @@ func extractStars(e *colly.HTMLElement) int {
 	return stars
 }
 
-func scrapePage(url string) (string, []Dep) {
-	c := colly.NewCollector()
-	// add random user agent
-	extensions.RandomUserAgent(c)
-	c.CheckHead = true
+type ScrapeModel struct {
+	nextUrl string
+	deps    []Dep
+}
 
+func scrapePage(url string) (ScrapeModel, error) {
+	c := colly.NewCollector()
 	var nextUrl string
 
 	// pagination
@@ -79,10 +78,9 @@ func scrapePage(url string) (string, []Dep) {
 
 	err := c.Visit(url)
 	if err != nil {
-		log.Fatal(err)
-		return "", nil
+		return ScrapeModel{}, err
 	}
-	return nextUrl, deps
+	return ScrapeModel{nextUrl: nextUrl, deps: deps}, nil
 }
 
 func InitScrape() tea.Cmd {
@@ -93,7 +91,12 @@ func InitScrape() tea.Cmd {
 
 func Scrape(url string) tea.Cmd {
 	return func() tea.Msg {
-		nextUrl, newDeps := scrapePage(url)
+		scrapeResult, err := scrapePage(url)
+		if err != nil {
+			return errMsg(err)
+		}
+		nextUrl := scrapeResult.nextUrl
+		newDeps := scrapeResult.deps
 
 		return PageTick{
 			nextUrl: nextUrl,

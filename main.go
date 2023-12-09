@@ -85,8 +85,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 	case errMsg:
+		SortByStars(&m.deps)
+		WriteJson(m.deps)
 		m.err = msg
-		return m, nil
+		fmt.Printf("\nError: %v\nCrawled results are saved to deps.json\nQuitting...\n", msg)
+		return m, tea.Quit
 
 	case InitScrapeTick:
 		return m, tea.Batch(Scrape(m.repo), m.spinner.Tick)
