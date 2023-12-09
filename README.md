@@ -16,14 +16,14 @@ You can install the appropriate binary from the [releases page](https://github.c
 
 #### Note:
 
-If you're on macOS, you may need to run xattr -c ./nvim-macos.tar.gz to (to avoid "unknown developer" warning)
+If you're on macOS, you may need to run `xattr -c ./nvim-macos.tar.gz` to (to avoid "unknown developer" warning)
 
 ## Usage
 
 Use the following command in your terminal:
 
 ```sh
-$ ./uby
+./uby
 ```
 
 1. Uby will ask for the repo dependents url which you can get by clicking `Used by` of the repo you want to search, for example: `https://github.com/spf13/cobra/network/dependents`
