@@ -16,7 +16,7 @@ You can install the appropriate binary from the [releases page](https://github.c
 
 #### Note:
 
-If you're on macOS, you may need to run `xattr -c ./cert-check_Darwin_x86_64.tar.gz` to (to avoid "unknown developer" warning)
+If you're on macOS, you may need to run `xattr -c ./uby_Darwin_x86_64.tar.gz` to (to avoid "unknown developer" warning)
 
 ## Usage
 
