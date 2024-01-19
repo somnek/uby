@@ -2,6 +2,10 @@
 
 🥦 Github scraper that helps you find all dependents of a project.
 
+<p align="center">
+  <img style="width:500px" src="./assets/demo.gif"/>
+</p>
+
 ## The Name
 
 The name Uby is derived from "Used by" in GitHub.

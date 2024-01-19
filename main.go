@@ -106,7 +106,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			SortByStars(&m.deps)
 			WriteJson(m.deps)
-			m.logs = "\nDone! 🧨 Write deps.json..."
+			m.logs = "\nDone! 🧨 Results written to deps.json..."
 			m.done = true
 			return m, tea.Quit
 		}
@@ -134,7 +134,15 @@ func (m model) View() string {
 		}
 	}
 
-	outText := fmt.Sprintf("%s\n\n%s\n\n%s\n\npages: %d\nrepos: %d\n%s\n", title, body, footer, m.pages, m.count, m.logs)
+	outText := fmt.Sprintf(
+		"%s\n\n%s\n\n%s\n\npages: %d\nrepos: %d\n%s\n",
+		title,
+		body,
+		footer,
+		m.pages,
+		m.count,
+		m.logs,
+	)
 	return outText
 
 }
